@@ -13,57 +13,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
     <!-- 自訂樣式 -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
-    <style>
-        body {
-            background: linear-gradient(135deg, #6e8efb, #a777e3);
-            font-family: 'Arial', sans-serif;
-            height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .container {
-            max-width: 500px;
-            background-color: #fff;
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0 0 30px rgba(0, 0, 0, 0.2);
-        }
-        .form-container {
-            position: relative;
-            overflow: hidden;
-        }
-        .form-container form {
-            transition: transform 0.5s ease-in-out;
-            position: absolute;
-            width: 100%;
-            top: 0;
-            left: 0;
-        }
-        .register-form {
-            transform: translateX(100%); /* 確保註冊表單在初始時隱藏 */
-        }
-        .error-message {
-            color: red;
-            font-size: 14px;
-        }
-        .btn-custom {
-            background-color: #6e8efb;
-            color: #fff;
-            font-weight: bold;
-        }
-        .btn-custom:hover {
-            background-color: #5a76d4;
-        }
-        .switch-form {
-            cursor: pointer;
-            color: #6e8efb;
-            font-weight: bold;
-        }
-        .switch-form:hover {
-            text-decoration: underline;
-        }
-    </style>
+    
 </head>
 <body>
 
