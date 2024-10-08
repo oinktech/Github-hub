@@ -5,6 +5,7 @@ from flask_login import LoginManager, UserMixin, login_user, logout_user, curren
 from authlib.integrations.flask_client import OAuth
 from github import Github
 from dotenv import load_dotenv
+from werkzeug.security import generate_password_hash, check_password_hash  # 导入密码哈希函数
 
 # 載入環境變數
 load_dotenv()
@@ -60,7 +61,7 @@ def auth():
         if User.query.filter_by(username=username).first():
             flash('使用者名稱已被使用，請選擇其他名稱。', 'error')
             return redirect(url_for('index'))
-        hashed_password = generate_password_hash(password)
+        hashed_password = generate_password_hash(password)  # 生成哈希密碼
         user = User(username=username, password=hashed_password)
         db.session.add(user)
         db.session.commit()
@@ -70,7 +71,7 @@ def auth():
 
     elif action == 'login':
         user = User.query.filter_by(username=username).first()
-        if user and check_password_hash(user.password, password):
+        if user and check_password_hash(user.password, password):  # 驗證哈希密碼
             login_user(user)
             flash('登入成功！', 'success')
             return redirect(url_for('dashboard'))
@@ -231,6 +232,5 @@ def delete_file(owner, name):
     return redirect(url_for('repo', owner=owner, name=name))
 
 if __name__ == '__main__':
-    with app.app_context():
-        db.create_all()
-    app.run(debug=True, port=10000, host='0.0.0.0')
+    db.create_all()
+    app.run(debug=True,port=10000, host='0.0.0.0')
