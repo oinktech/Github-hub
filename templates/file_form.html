@@ -1,4 +1,3 @@
-<!-- templates/file_form.html -->
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
@@ -11,6 +10,8 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <!-- Animate.css -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+    <!-- Prism.js for code highlighting -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.23.0/themes/prism.min.css" rel="stylesheet"/>
     <style>
         body {
             background-color: #f8f9fa;
@@ -31,41 +32,37 @@
 <div class="container mt-4">
     {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
-    <div class="alert alert-{{ 'danger' if 'error' in messages[0][0] else 'success' if 'success' in messages[0][0] else 'warning' }}" role="alert">
         {% for category, message in messages %}
-        <div>{{ message }}</div>
+            <div class="alert alert-{{ category }}">{{ message }}</div>
         {% endfor %}
-    </div>
     {% endif %}
     {% endwith %}
 
-    <h2 class="mb-4"><i class="fas fa-file"></i> {{ '新增' if request.method == 'GET' else '編輯' }}檔案 - {{ repo.name }}</h2>
-    <form method="POST" action="{{ url_for('repo_file', owner=owner, name=name) }}">
-        <div class="mb-3">
-            <label for="file_path" class="form-label">檔案路徑</label>
-            <input type="text" class="form-control" id="file_path" name="file_path" placeholder="例如：folder/filename.txt" value="{{ request.args.get('file_path') or '' }}" required>
-        </div>
+    <h2>{{ repo.name }}</h2>
+    <form method="POST">
+        <input type="hidden" name="file_path" value="{{ request.args.get('file_path', '') }}">
         <div class="mb-3">
             <label for="file_content" class="form-label">檔案內容</label>
-            <textarea class="form-control" id="file_content" name="file_content" rows="10" required>{{ '' }}</textarea>
+            <textarea id="file_content" name="file_content" class="form-control" rows="10">{{ file_content }}</textarea>
         </div>
         <div class="mb-3">
             <label for="commit_message" class="form-label">提交訊息</label>
-            <input type="text" class="form-control" id="commit_message" name="commit_message" placeholder="例如：新增 README" required>
+            <input type="text" name="commit_message" class="form-control" required>
         </div>
         <div class="mb-3">
-            <label for="action" class="form-label">操作</label>
-            <select class="form-select" id="action" name="action" required>
-                <option value="create">新增檔案</option>
-                <option value="edit">編輯檔案</option>
-            </select>
+            <input type="radio" id="create" name="action" value="create" checked>
+            <label for="create">新增檔案</label>
+            <input type="radio" id="edit" name="action" value="edit">
+            <label for="edit">編輯檔案</label>
         </div>
-        <button type="submit" class="btn btn-success"><i class="fas fa-save"></i> 提交變更</button>
-        <a href="{{ url_for('repo', owner=owner, name=name) }}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> 返回</a>
+        <button type="submit" class="btn btn-success"><i class="fas fa-save"></i> 儲存</button>
+        {% if request.args.get('file_path') %}
+            <button type="submit" formaction="{{ url_for('delete_file', owner=owner, name=name) }}" class="btn btn-danger"><i class="fas fa-trash-alt"></i> 刪除檔案</button>
+        {% endif %}
     </form>
 </div>
 
-<!-- Bootstrap JS -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.1.3/js/bootstrap.bundle.min.js"></script>
+<!-- Prism.js for code highlighting -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.23.0/prism.min.js"></script>
 </body>
 </html>
