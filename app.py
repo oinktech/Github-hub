@@ -232,17 +232,18 @@ def delete_file(owner, name):
     repo = gh.get_repo(f"{owner}/{name}")
     
     file_path = request.form.get('file_path')
-    commit_message = f'刪除檔案 {file_path}'
+    commit_message = f'Delete {file_path}'
     
     try:
         contents = repo.get_contents(file_path)
         repo.delete_file(contents.path, commit_message, contents.sha)
-        flash(f'檔案 {file_path} 刪除成功。', 'success')
+        flash('檔案刪除成功。', 'success')
     except Exception as e:
         flash(f'刪除檔案失敗：{str(e)}', 'error')
     
     return redirect(url_for('repo', owner=owner, name=name))
 
+# 啟動應用程式
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
