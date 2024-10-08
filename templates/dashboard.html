@@ -49,7 +49,7 @@
     <h2 class="mb-4"><i class="fas fa-repo"></i> 我的 GitHub 儲存庫</h2>
 
     <!-- 新增儲存庫的表單 -->
-    <form method="POST" action="{{ url_for('create_repo') }}" class="mb-4">
+    <form method="POST" action="{{ url_for('dashboard') }}" class="mb-4">
         <div class="input-group">
             <input type="text" class="form-control" name="repo_name" placeholder="儲存庫名稱" required>
             <button class="btn btn-success" type="submit"><i class="fas fa-plus"></i> 新增儲存庫</button>
