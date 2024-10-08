@@ -151,6 +151,7 @@ def search_repos():
         return redirect(url_for('dashboard'))
 
 # 顯示儲存庫內容
+# 顯示儲存庫內容
 @app.route('/repo/<owner>/<name>')
 @login_required
 def repo(owner, name):
@@ -158,10 +159,17 @@ def repo(owner, name):
     try:
         repo = gh.get_repo(f"{owner}/{name}")
         contents = repo.get_contents("")
+
+        # 檢查儲存庫內容是否為空
+        if len(contents) == 0:
+            contents = []  # 若儲存庫為空，設置內容為空列表
+            flash('儲存庫是空的，您可以新增檔案。', 'info')
+
         return render_template('repo.html', repo=repo, contents=contents)
     except Exception as e:
         flash(f'無法取得儲存庫內容：{str(e)}', 'error')
         return redirect(url_for('dashboard'))
+
 
 # 新增、編輯、刪除檔案
 @app.route('/repo/<owner>/<name>/file', methods=['GET', 'POST'])
