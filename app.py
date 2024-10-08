@@ -104,27 +104,51 @@ def github_callback():
         return redirect(url_for('index'))
 
 # 儲存庫顯示與管理
-@app.route('/dashboard')
+@app.route('/dashboard', methods=['GET', 'POST'])
 @login_required
 def dashboard():
     if not current_user.github_token:
         flash('請先連接 GitHub 帳號。', 'warning')
         return redirect(url_for('github_login'))
     
+    gh = Github(current_user.github_token)
+
+    if request.method == 'POST':
+        repo_name = request.form.get('repo_name')
+        # 呼叫 GitHub API 來創建儲存庫
+        try:
+            gh.get_user().create_repo(repo_name)
+            flash(f'儲存庫 {repo_name} 已成功創建！', 'success')
+        except Exception as e:
+            flash(f'創建儲存庫失敗：{str(e)}', 'error')
+
     try:
-        gh = Github(current_user.github_token)
         repos = gh.get_user().get_repos()
         return render_template('dashboard.html', repos=repos)
     except Exception as e:
         flash(f'無法取得儲存庫：{str(e)}', 'error')
         return redirect(url_for('index'))
 
+# 搜尋儲存庫
+@app.route('/search_repos', methods=['GET'])
+@login_required
+def search_repos():
+    query = request.args.get('query')
+    gh = Github(current_user.github_token)
+    
+    try:
+        repos = gh.search_repositories(query)
+        return render_template('dashboard.html', repos=repos)
+    except Exception as e:
+        flash(f'搜尋失敗：{str(e)}', 'error')
+        return redirect(url_for('dashboard'))
+
 # 顯示儲存庫內容
 @app.route('/repo/<owner>/<name>')
 @login_required
 def repo(owner, name):
+    gh = Github(current_user.github_token)
     try:
-        gh = Github(current_user.github_token)
         repo = gh.get_repo(f"{owner}/{name}")
         contents = repo.get_contents("")
         return render_template('repo.html', repo=repo, contents=contents)
