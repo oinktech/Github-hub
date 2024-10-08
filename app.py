@@ -118,17 +118,13 @@ def dashboard():
 
     if request.method == 'POST':
         repo_name = request.form.get('repo_name')
-        
-        # 檢查儲存庫名稱是否已存在
-        existing_repo = gh.get_user().get_repos()
-        if any(repo.name == repo_name for repo in existing_repo):
-            flash('儲存庫名稱已存在，請選擇其他名稱。', 'error')
-            return redirect(url_for('dashboard'))
-
-        # 呼叫 GitHub API 來創建儲存庫
+        # 檢查儲存庫名稱是否重複
         try:
-            gh.get_user().create_repo(repo_name)
-            flash(f'儲存庫 "{repo_name}" 已成功創建！', 'success')
+            if gh.get_user().get_repo(repo_name):
+                flash('儲存庫名稱已存在，請選擇其他名稱。', 'error')
+            else:
+                gh.get_user().create_repo(repo_name)
+                flash(f'儲存庫 {repo_name} 已成功創建！', 'success')
         except Exception as e:
             flash(f'創建儲存庫失敗：{str(e)}', 'error')
 
@@ -228,7 +224,26 @@ def repo_file(owner, name):
     
     return render_template('file_form.html', repo=repo, owner=owner, name=name, file_content=file_content)
 
-# 启动 Flask 应用
+# 刪除檔案
+@app.route('/repo/<owner>/<name>/delete', methods=['POST'])
+@login_required
+def delete_file(owner, name):
+    gh = Github(current_user.github_token)
+    repo = gh.get_repo(f"{owner}/{name}")
+    
+    file_path = request.form.get('file_path')
+    commit_message = f'Delete {file_path}'
+    
+    try:
+        contents = repo.get_contents(file_path)
+        repo.delete_file(contents.path, commit_message, contents.sha)
+        flash('檔案刪除成功。', 'success')
+    except Exception as e:
+        flash(f'刪除檔案失敗：{str(e)}', 'error')
+    
+    return redirect(url_for('repo', owner=owner, name=name))
+
+# 啟動應用程式
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
