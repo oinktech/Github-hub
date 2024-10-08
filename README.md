@@ -5,7 +5,7 @@
 [繁體中文](#繁體中文) | [English](#english-version)
 
 
-##繁體中文
+## 繁體中文
 ### 📖 簡介
 
 Github-Hub 是一個基於 Python 和 HTML 的網頁應用程式，旨在幫助用戶管理和分析來自 GitHub 儲存庫的數據。通過簡單的介面，使用者可以輕鬆訪問和可視化他們的 GitHub 資料。🚀
