@@ -37,6 +37,7 @@ github_oauth = oauth.register(
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(150), nullable=False, unique=True)
+    password = db.Column(db.String(200), nullable=False)  # 新增密碼字段
     github_token = db.Column(db.String(200), nullable=True)
 
 # 載入使用者的函數
@@ -59,7 +60,8 @@ def auth():
         if User.query.filter_by(username=username).first():
             flash('使用者名稱已被使用，請選擇其他名稱。', 'error')
             return redirect(url_for('index'))
-        user = User(username=username)
+        hashed_password = generate_password_hash(password)
+        user = User(username=username, password=hashed_password)
         db.session.add(user)
         db.session.commit()
         login_user(user)
@@ -68,7 +70,7 @@ def auth():
 
     elif action == 'login':
         user = User.query.filter_by(username=username).first()
-        if user:
+        if user and check_password_hash(user.password, password):
             login_user(user)
             flash('登入成功！', 'success')
             return redirect(url_for('dashboard'))
@@ -151,7 +153,6 @@ def search_repos():
         return redirect(url_for('dashboard'))
 
 # 顯示儲存庫內容
-# 顯示儲存庫內容
 @app.route('/repo/<owner>/<name>')
 @login_required
 def repo(owner, name):
@@ -159,17 +160,16 @@ def repo(owner, name):
     try:
         repo = gh.get_repo(f"{owner}/{name}")
         contents = repo.get_contents("")
-
-        # 檢查儲存庫內容是否為空
-        if len(contents) == 0:
-            contents = []  # 若儲存庫為空，設置內容為空列表
-            flash('儲存庫是空的，您可以新增檔案。', 'info')
+        
+        # 檢查儲存庫是否為空
+        if not contents:
+            flash('此儲存庫是空的。', 'info')
+            return render_template('repo.html', repo=repo, contents=None)
 
         return render_template('repo.html', repo=repo, contents=contents)
     except Exception as e:
         flash(f'無法取得儲存庫內容：{str(e)}', 'error')
         return redirect(url_for('dashboard'))
-
 
 # 新增、編輯、刪除檔案
 @app.route('/repo/<owner>/<name>/file', methods=['GET', 'POST'])
