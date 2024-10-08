@@ -113,22 +113,6 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.1.3/js/bootstrap.bundle.min.js"></script>
 <!-- 自訂腳本 -->
 <script src="{{ url_for('static', filename='js/scripts.js') }}"></script>
-<script>
-    const loginForm = document.getElementById('login-form');
-    const registerForm = document.getElementById('register-form');
-    const toRegisterLink = document.getElementById('to-register');
-    const toLoginLink = document.getElementById('to-login');
-
-    toRegisterLink.addEventListener('click', () => {
-        loginForm.style.transform = 'translateX(-100%)';
-        registerForm.style.transform = 'translateX(0)';
-    });
-
-    toLoginLink.addEventListener('click', () => {
-        loginForm.style.transform = 'translateX(0)';
-        registerForm.style.transform = 'translateX(100%)';
-    });
-</script>
 
 </body>
 </html>
