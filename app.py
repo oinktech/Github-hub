@@ -158,11 +158,29 @@ def repo(owner, name):
     gh = Github(current_user.github_token)
     try:
         repo = gh.get_repo(f"{owner}/{name}")
-        contents = repo.get_contents("")
+        contents = repo.get_contents("")  # 嘗試獲取儲存庫內容
         return render_template('repo.html', repo=repo, contents=contents)
     except Exception as e:
-        flash(f'無法取得儲存庫內容：{str(e)}', 'error')
+        # 檢查錯誤訊息，特別是空儲存庫的情況
+        if "This repository is empty." in str(e):
+            # 嘗試創建一個空白檔案
+            try:
+                file_path = "README.md"  # 空白檔案名稱
+                commit_message = "初始化 README 檔案 來自Github-hub"  # 提交訊息
+                repo.create_file(file_path, commit_message, "", branch="main")  # 創建空檔案
+                
+                flash(f'儲存庫 "{repo.name}" 為空，已創建空白檔案 {file_path}。', 'success')
+                
+                # 重新獲取檔案內容
+                contents = repo.get_contents("")  
+                return render_template('repo.html', repo=repo, contents=contents)
+            except Exception as create_error:
+                flash(f'創建檔案失敗：{str(create_error)}', 'error')
+        else:
+            flash(f'無法取得儲存庫內容：{str(e)}', 'error')
+        
         return redirect(url_for('dashboard'))
+
 
 # 新增、編輯、刪除檔案
 @app.route('/repo/<owner>/<name>/file', methods=['GET', 'POST'])
