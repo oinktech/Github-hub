@@ -1,3 +1,4 @@
+<!-- templates/index.html -->
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
@@ -20,7 +21,6 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            overflow: hidden; /* 防止滾動 */
         }
         .container {
             max-width: 500px;
@@ -41,7 +41,7 @@
             left: 0;
         }
         .register-form {
-            transform: translateX(100%);
+            transform: translateX(100%); /* 確保註冊表單在初始時隱藏 */
         }
         .error-message {
             color: red;
@@ -63,20 +63,11 @@
         .switch-form:hover {
             text-decoration: underline;
         }
-        /* 新增的樣式 */
-        .intro-text {
-            text-align: center;
-            margin-bottom: 20px;
-            font-size: 1.2em;
-        }
     </style>
 </head>
 <body>
 
 <div class="container animate__animated animate__fadeIn">
-    <h2 class="text-center mb-4">歡迎來到我們的網站！</h2>
-    <p class="intro-text">這不是 GitHub 的官方網站，您可以在此登入或註冊以使用我們的服務。</p>
-    
     <div class="form-container">
         {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
