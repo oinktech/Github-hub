@@ -115,6 +115,13 @@ def dashboard():
 
     if request.method == 'POST':
         repo_name = request.form.get('repo_name')
+        # 檢查儲存庫是否已存在
+        existing_repos = [repo.name for repo in gh.get_user().get_repos()]
+        
+        if repo_name in existing_repos:
+            flash(f'儲存庫名稱 "{repo_name}" 已存在，請選擇其他名稱。', 'error')
+            return redirect(url_for('dashboard'))
+
         # 呼叫 GitHub API 來創建儲存庫
         try:
             gh.get_user().create_repo(repo_name)
