@@ -1,6 +1,6 @@
 # Github-Hub 🌐
 
-![Github-Hub Logo](icon.png)
+![Github-Hub Logo](static/icon.png)
 
 [繁體中文](#繁體中文) | [English](#english-version)
 
