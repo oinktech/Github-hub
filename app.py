@@ -5,7 +5,7 @@ from flask_login import LoginManager, UserMixin, login_user, logout_user, curren
 from authlib.integrations.flask_client import OAuth
 from github import Github
 from dotenv import load_dotenv
-from werkzeug.security import generate_password_hash, check_password_hash  # 导入密码哈希函数
+from flask_caching import Cache  # 引入快取模組
 
 # 載入環境變數
 load_dotenv()
@@ -14,9 +14,12 @@ app = Flask(__name__)
 app.secret_key = os.getenv('SECRET_KEY', 'supersecretkey')
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['CACHE_TYPE'] = 'SimpleCache'  # 設定快取類型
+app.config['CACHE_DEFAULT_TIMEOUT'] = 300  # 預設快取過期時間
 
 # 初始化資料庫
 db = SQLAlchemy(app)
+cache = Cache(app)  # 初始化快取
 
 # 初始化登入管理
 login_manager = LoginManager(app)
@@ -38,7 +41,6 @@ github_oauth = oauth.register(
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(150), nullable=False, unique=True)
-    password = db.Column(db.String(200), nullable=False)  # 新增密碼字段
     github_token = db.Column(db.String(200), nullable=True)
 
 # 載入使用者的函數
@@ -55,14 +57,12 @@ def index():
 def auth():
     action = request.form.get('action')
     username = request.form.get('username')
-    password = request.form.get('password')  # 暫未實作密碼功能
 
     if action == 'register':
         if User.query.filter_by(username=username).first():
             flash('使用者名稱已被使用，請選擇其他名稱。', 'error')
             return redirect(url_for('index'))
-        hashed_password = generate_password_hash(password)  # 生成哈希密碼
-        user = User(username=username, password=hashed_password)
+        user = User(username=username)
         db.session.add(user)
         db.session.commit()
         login_user(user)
@@ -71,7 +71,7 @@ def auth():
 
     elif action == 'login':
         user = User.query.filter_by(username=username).first()
-        if user and check_password_hash(user.password, password):  # 驗證哈希密碼
+        if user:
             login_user(user)
             flash('登入成功！', 'success')
             return redirect(url_for('dashboard'))
@@ -118,13 +118,6 @@ def dashboard():
 
     if request.method == 'POST':
         repo_name = request.form.get('repo_name')
-        # 檢查儲存庫是否已存在
-        existing_repos = [repo.name for repo in gh.get_user().get_repos()]
-        
-        if repo_name in existing_repos:
-            flash(f'儲存庫名稱 "{repo_name}" 已存在，請選擇其他名稱。', 'error')
-            return redirect(url_for('dashboard'))
-
         # 呼叫 GitHub API 來創建儲存庫
         try:
             gh.get_user().create_repo(repo_name)
@@ -132,8 +125,13 @@ def dashboard():
         except Exception as e:
             flash(f'創建儲存庫失敗：{str(e)}', 'error')
 
+    # 儲存庫快取
+    @cache.cached(timeout=300, query_string=True)
+    def get_repos():
+        return gh.get_user().get_repos()
+
     try:
-        repos = gh.get_user().get_repos()
+        repos = get_repos()
         return render_template('dashboard.html', repos=repos)
     except Exception as e:
         flash(f'無法取得儲存庫：{str(e)}', 'error')
@@ -161,12 +159,6 @@ def repo(owner, name):
     try:
         repo = gh.get_repo(f"{owner}/{name}")
         contents = repo.get_contents("")
-        
-        # 檢查儲存庫是否為空
-        if not contents:
-            flash('此儲存庫是空的。', 'info')
-            return render_template('repo.html', repo=repo, contents=None)
-
         return render_template('repo.html', repo=repo, contents=contents)
     except Exception as e:
         flash(f'無法取得儲存庫內容：{str(e)}', 'error')
@@ -232,6 +224,6 @@ def delete_file(owner, name):
     return redirect(url_for('repo', owner=owner, name=name))
 
 if __name__ == '__main__':
-    with app.app_context():  # 确保有应用上下文
+    with app.app_context():
         db.create_all()
-    app.run(debug=True,port=10000, host='0.0.0.0')
+    app.run(debug=True, port=10000, host='0.0.0.0')
