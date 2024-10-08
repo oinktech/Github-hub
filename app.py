@@ -1,4 +1,3 @@
-# app.py
 import os
 from flask import Flask, render_template, redirect, url_for, request, flash
 from flask_sqlalchemy import SQLAlchemy
@@ -159,7 +158,19 @@ def repo_file(owner, name):
             flash(f'操作失敗：{str(e)}', 'error')
             return redirect(url_for('repo', owner=owner, name=name))
     
-    return render_template('file_form.html', repo=repo, owner=owner, name=name)
+    # 讀取檔案內容以顯示在表單中
+    file_path = request.args.get('file_path')
+    if file_path:
+        try:
+            contents = repo.get_contents(file_path)
+            file_content = contents.decoded_content.decode("utf-8")
+        except Exception as e:
+            file_content = ''
+            flash(f'無法讀取檔案內容：{str(e)}', 'error')
+    else:
+        file_content = ''
+    
+    return render_template('file_form.html', repo=repo, owner=owner, name=name, file_content=file_content)
 
 # 刪除檔案
 @app.route('/repo/<owner>/<name>/delete', methods=['POST'])
@@ -183,4 +194,4 @@ def delete_file(owner, name):
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
-    app.run(debug=True,port=10000,host='0.0.0.0')
+    app.run(debug=True, port=10000, host='0.0.0.0')
