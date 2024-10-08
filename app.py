@@ -1,11 +1,12 @@
 import os
+import logging
 from flask import Flask, render_template, redirect, url_for, request, flash
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, logout_user, current_user, login_required
 from authlib.integrations.flask_client import OAuth
 from github import Github
 from dotenv import load_dotenv
-from flask_caching import Cache  # 引入快取模組
+from flask_caching import Cache
 
 # 載入環境變數
 load_dotenv()
@@ -113,14 +114,14 @@ def dashboard():
     if not current_user.github_token:
         flash('請先連接 GitHub 帳號。', 'warning')
         return redirect(url_for('github_login'))
-    
+
     gh = Github(current_user.github_token)
 
     if request.method == 'POST':
         repo_name = request.form.get('repo_name')
-        # 檢查儲存庫名稱是否重複
         try:
-            if gh.get_user().get_repo(repo_name):
+            # 檢查儲存庫是否存在
+            if any(repo.name == repo_name for repo in gh.get_user().get_repos()):
                 flash('儲存庫名稱已存在，請選擇其他名稱。', 'error')
             else:
                 gh.get_user().create_repo(repo_name)
@@ -146,7 +147,7 @@ def dashboard():
 def search_repos():
     query = request.args.get('query')
     gh = Github(current_user.github_token)
-    
+
     try:
         repos = gh.search_repositories(query)
         return render_template('dashboard.html', repos=repos)
@@ -190,7 +191,7 @@ def repo(owner, name):
 def repo_file(owner, name):
     gh = Github(current_user.github_token)
     repo = gh.get_repo(f"{owner}/{name}")
-    
+
     if request.method == 'POST':
         file_path = request.form.get('file_path')
         file_content = request.form.get('file_content')
@@ -232,18 +233,26 @@ def delete_file(owner, name):
     repo = gh.get_repo(f"{owner}/{name}")
     
     file_path = request.form.get('file_path')
-    commit_message = f'Delete {file_path}'
+    commit_message = f'刪除檔案 {file_path}'
     
     try:
         contents = repo.get_contents(file_path)
         repo.delete_file(contents.path, commit_message, contents.sha)
-        flash('檔案刪除成功。', 'success')
+        flash(f'檔案 {file_path} 刪除成功。', 'success')
     except Exception as e:
         flash(f'刪除檔案失敗：{str(e)}', 'error')
     
     return redirect(url_for('repo', owner=owner, name=name))
 
-# 啟動應用程式
+# 頁面錯誤處理
+@app.errorhandler(404)
+def page_not_found(e):
+    return render_template('404.html'), 404
+
+@app.errorhandler(500)
+def internal_server_error(e):
+    return render_template('500.html'), 500
+
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
