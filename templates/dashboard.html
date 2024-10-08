@@ -56,13 +56,7 @@
         </div>
     </form>
 
-    <!-- 搜尋儲存庫 -->
-    <form method="GET" action="{{ url_for('search_repos') }}" class="mb-4">
-        <div class="input-group">
-            <input type="text" class="form-control" name="query" placeholder="搜尋儲存庫..." required>
-            <button class="btn btn-primary" type="submit"><i class="fas fa-search"></i> 搜尋</button>
-        </div>
-    </form>
+    
 
     <div class="row">
         {% for repo in repos %}
