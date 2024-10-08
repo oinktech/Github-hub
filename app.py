@@ -232,5 +232,6 @@ def delete_file(owner, name):
     return redirect(url_for('repo', owner=owner, name=name))
 
 if __name__ == '__main__':
-    db.create_all()
+    with app.app_context():  # 确保有应用上下文
+        db.create_all()
     app.run(debug=True,port=10000, host='0.0.0.0')
