@@ -1,6 +1,6 @@
 # Github-Hub 🌐
 
-![Github-Hub Logo](A_minimalist_logo_for_a_project_called_'Github-Hub.png)
+![Github-Hub Logo](icon.png)
 
 [繁體中文](#繁體中文) | [English](#english-version)
 
@@ -10,7 +10,6 @@
 
 Github-Hub 是一個基於 Python 和 HTML 的網頁應用程式，旨在幫助用戶管理和分析來自 GitHub 儲存庫的數據。通過簡單的介面，使用者可以輕鬆訪問和可視化他們的 GitHub 資料。🚀
 
-![Application Demo](https://media.giphy.com/media/3oFzmfJQEzUdc2aCrG/giphy.gif)
 
 ### ⚙️ 功能
 
@@ -28,7 +27,6 @@ Github-Hub 是一個基於 Python 和 HTML 的網頁應用程式，旨在幫助�
 
 立即體驗我們的應用程式！訪問 [Github-Hub Demo](https://github-hub.onrender.com/) 🔗
 
-![Demo in Action](https://media.giphy.com/media/JIXvn1j8YtV1e/giphy.gif)
 
 ### 🔧 安裝與使用
 
@@ -70,7 +68,6 @@ Github-Hub 是一個基於 Python 和 HTML 的網頁應用程式，旨在幫助�
 
 Github-Hub is a web-based application built with Python and HTML, designed to help users manage and analyze data from GitHub repositories. Through a simple interface, users can easily access and visualize their GitHub data. 🚀
 
-![Application Demo](https://media.giphy.com/media/3oFzmfJQEzUdc2aCrG/giphy.gif)
 
 ### ⚙️ Features
 
@@ -82,7 +79,6 @@ Github-Hub is a web-based application built with Python and HTML, designed to he
 
 Experience our application now! Visit the [Github-Hub Demo](https://github-hub.onrender.com/) 🔗
 
-![Demo in Action](https://media.giphy.com/media/JIXvn1j8YtV1e/giphy.gif)
 
 ### 💻 Requirements
 
