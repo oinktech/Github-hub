@@ -1,3 +1,4 @@
+<!-- templates/repo.html -->
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
@@ -43,8 +44,6 @@
 
     <h2 class="mb-4"><i class="fas fa-folder"></i> 儲存庫：{{ repo.name }}</h2>
     <a href="{{ url_for('repo_file', owner=repo.owner.login, name=repo.name) }}" class="btn btn-success mb-3"><i class="fas fa-file-plus"></i> 新增檔案</a>
-
-    {% if contents %}
     <table class="table table-hover">
         <thead>
             <tr>
@@ -71,9 +70,6 @@
             {% endfor %}
         </tbody>
     </table>
-    {% else %}
-    <div class="alert alert-warning" role="alert">這個儲存庫目前沒有檔案。</div>
-    {% endif %}
 </div>
 
 <!-- Bootstrap JS -->
