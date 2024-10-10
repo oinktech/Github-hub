@@ -32,7 +32,27 @@
         </div>
     </div>
 </nav>
+<nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="#">GitHub-Hub</a>
+        <div class="d-flex">
+            <a href="{{ url_for('logout') }}" class="btn btn-outline-light"><i class="fas fa-sign-out-alt"></i> 登出</a>
+        </div>
 
+        <div class="dropdown">
+            <button class="btn btn-secondary dropdown-toggle" type="button" id="streamDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                當前分流
+            </button>
+            <ul class="dropdown-menu" aria-labelledby="streamDropdown">
+                <li>
+                    <select id="streamSelect" class="dropdown-item" onchange="location = this.value;">
+                        <option>正在載入分流...</option>
+                    </select>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
 <div class="container mt-4">
     {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
