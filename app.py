@@ -129,17 +129,23 @@ def dashboard():
         except Exception as e:
             flash(f'創建儲存庫失敗：{str(e)}', 'error')
 
-    # 儲存庫快取
-    @cache.cached(timeout=300, query_string=True)
-    def get_repos():
-        return gh.get_user().get_repos()
+    # 取得當前頁碼
+    page = request.args.get('page', 1, type=int)
+    per_page = 30  # 每頁顯示的儲存庫數量
+    start = (page - 1) * per_page
 
-    try:
-        repos = get_repos()
-        return render_template('dashboard.html', repos=repos)
-    except Exception as e:
-        flash(f'無法取得儲存庫：{str(e)}', 'error')
-        return redirect(url_for('index'))
+    # 獲取所有儲存庫
+    repos = list(gh.get_user().get_repos())
+    total_repos = len(repos)  # 總儲存庫數量
+    total_pages = (total_repos + per_page - 1) // per_page  # 總頁數
+
+    # 進行分頁
+    repos = repos[start:start + per_page]
+
+    return render_template('dashboard.html', repos=repos, page=page, total_pages=total_pages)
+
+# 搜尋儲存庫
+
 
 # 搜尋儲存庫
 @app.route('/search_repos', methods=['GET'])
@@ -149,8 +155,11 @@ def search_repos():
     gh = Github(current_user.github_token)
 
     try:
-        repos = gh.search_repositories(query)
-        return render_template('dashboard.html', repos=repos)
+        # 透過 GitHub API 搜尋用戶的儲存庫
+        repos = gh.get_user().get_repos()  # 取得所有儲存庫
+        filtered_repos = [repo for repo in repos if query.lower() in repo.name.lower()]
+
+        return render_template('dashboard.html', repos=filtered_repos, page=1, total_pages=1)
     except Exception as e:
         flash(f'搜尋失敗：{str(e)}', 'error')
         return redirect(url_for('dashboard'))
