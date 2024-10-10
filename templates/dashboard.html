@@ -1,4 +1,3 @@
-<!-- templates/dashboard.html -->
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
@@ -49,6 +48,14 @@
 
     <h2 class="mb-4"><i class="fas fa-repo"></i> 我的 GitHub 儲存庫</h2>
 
+    <!-- 搜尋儲存庫 -->
+    <form method="GET" action="{{ url_for('search_repos') }}" class="mb-4">
+        <div class="input-group">
+            <input type="text" class="form-control" name="query" placeholder="搜尋儲存庫" required>
+            <button class="btn btn-primary" type="submit"><i class="fas fa-search"></i> 搜尋</button>
+        </div>
+    </form>
+
     <!-- 新增儲存庫的表單 -->
     <form method="POST" action="{{ url_for('dashboard') }}" class="mb-4">
         <div class="input-group">
@@ -56,8 +63,6 @@
             <button class="btn btn-success" type="submit"><i class="fas fa-plus"></i> 新增儲存庫</button>
         </div>
     </form>
-
-    
 
     <div class="row">
         {% for repo in repos %}
@@ -78,6 +83,32 @@
         </div>
         {% endfor %}
     </div>
+
+    <!-- 分頁功能 -->
+    <nav aria-label="Page navigation">
+        <ul class="pagination justify-content-center">
+            {% if page > 1 %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('dashboard', page=page-1) }}" aria-label="Previous">
+                        <span aria-hidden="true">&laquo;</span>
+                    </a>
+                </li>
+            {% endif %}
+            {% for p in range(1, total_pages + 1) %}
+                <li class="page-item {% if p == page %}active{% endif %}">
+                    <a class="page-link" href="{{ url_for('dashboard', page=p) }}">{{ p }}</a>
+                </li>
+            {% endfor %}
+            {% if page < total_pages %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('dashboard', page=page+1) }}" aria-label="Next">
+                        <span aria-hidden="true">&raquo;</span>
+                    </a>
+                </li>
+            {% endif %}
+        </ul>
+    </nav>
+
 </div>
 
 <!-- Bootstrap JS -->
