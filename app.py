@@ -106,6 +106,10 @@ def github_callback():
     except Exception as e:
         flash(f'GitHub 認證失敗：{str(e)}', 'error')
         return redirect(url_for('index'))
+@app.route('/json/streams')
+def streams():
+    return jsonify(app.send_static_file('json/streams.json'))
+
 
 # 儲存庫顯示與管理
 @app.route('/dashboard', methods=['GET', 'POST'])
