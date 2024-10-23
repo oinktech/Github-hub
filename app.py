@@ -1,24 +1,27 @@
 import os
 import logging
 from flask import Flask, render_template, redirect, url_for, request, flash, jsonify
-from flask_pymongo import PyMongo
 from flask_login import LoginManager, UserMixin, login_user, logout_user, current_user, login_required
 from authlib.integrations.flask_client import OAuth
 from github import Github
 from dotenv import load_dotenv
 from flask_caching import Cache
+from pymongo import MongoClient
+from bson.objectid import ObjectId  # 載入ObjectId類
 
 # 載入環境變數
 load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = os.getenv('SECRET_KEY', 'supersecretkey')
-app.config['MONGO_URI'] = os.getenv('MONGO_URI')  # 使用環境變數中的 MongoDB 連接字符串
+app.config['MONGO_URI'] = os.getenv('MONGO_URI')  # MongoDB 連接字串
 app.config['CACHE_TYPE'] = 'SimpleCache'  # 設定快取類型
 app.config['CACHE_DEFAULT_TIMEOUT'] = 300  # 預設快取過期時間
 
-# 初始化 MongoDB
-mongo = PyMongo(app)
+# 初始化資料庫
+client = MongoClient(app.config['MONGO_URI'])
+db = client.get_default_database()  # 使用預設資料庫
+users_collection = db.users  # 使用 users 集合
 cache = Cache(app)  # 初始化快取
 
 # 初始化登入管理
@@ -39,17 +42,18 @@ github_oauth = oauth.register(
 
 # 使用者模型
 class User(UserMixin):
-    def __init__(self, username, user_id=None, github_token=None):
-        self.id = user_id
+    def __init__(self, id, username, github_token=None):
+        self.id = id
         self.username = username
         self.github_token = github_token
 
 # 載入使用者的函數
 @login_manager.user_loader
 def load_user(user_id):
-    user_data = mongo.db.users.find_one({"_id": user_id})
-    if user_data:
-        return User(username=user_data['username'], user_id=user_data['_id'], github_token=user_data.get('github_token'))
+    # 將 user_id 轉換為 ObjectId
+    user = users_collection.find_one({"_id": ObjectId(user_id)})
+    if user:
+        return User(id=str(user["_id"]), username=user["username"], github_token=user.get("github_token"))
     return None
 
 @app.route('/')
@@ -63,20 +67,19 @@ def auth():
     username = request.form.get('username')
 
     if action == 'register':
-        if mongo.db.users.find_one({"username": username}):
+        if users_collection.find_one({"username": username}):
             flash('使用者名稱已被使用，請選擇其他名稱。', 'error')
             return redirect(url_for('index'))
-        user_id = mongo.db.users.insert_one({"username": username}).inserted_id
-        user = User(username=username, user_id=user_id)
-        login_user(user)
+        user = {"username": username}
+        user_id = users_collection.insert_one(user).inserted_id
+        login_user(User(id=str(user_id), username=username))
         flash('註冊成功！', 'success')
         return redirect(url_for('dashboard'))
 
     elif action == 'login':
-        user_data = mongo.db.users.find_one({"username": username})
-        if user_data:
-            user = User(username=user_data['username'], user_id=user_data['_id'], github_token=user_data.get('github_token'))
-            login_user(user)
+        user = users_collection.find_one({"username": username})
+        if user:
+            login_user(User(id=str(user["_id"]), username=user["username"]))
             flash('登入成功！', 'success')
             return redirect(url_for('dashboard'))
         flash('無效的使用者名稱或密碼。', 'error')
@@ -102,7 +105,7 @@ def github_login():
 def github_callback():
     try:
         token = github_oauth.authorize_access_token()
-        mongo.db.users.update_one({"_id": current_user.id}, {"$set": {"github_token": token['access_token']}})
+        users_collection.update_one({"_id": ObjectId(current_user.id)}, {"$set": {"github_token": token['access_token']}})
         flash('GitHub 連接成功！', 'success')
         return redirect(url_for('dashboard'))
     except Exception as e:
@@ -214,14 +217,14 @@ def repo_file(owner, name):
             if action == 'edit':
                 contents = repo.get_contents(file_path)
                 repo.update_file(contents.path, commit_message, file_content, contents.sha)
-                flash('檔案編輯成功！', 'success')
+                flash(f'檔案 "{file_path}" 已更新！', 'success')
             else:
                 repo.create_file(file_path, commit_message, file_content)
-                flash('檔案創建成功！', 'success')
+                flash(f'檔案 "{file_path}" 已創建！', 'success')
+
+            return redirect(url_for('repo', owner=owner, name=name))
         except Exception as e:
             flash(f'操作失敗：{str(e)}', 'error')
-
-        return redirect(url_for('repo', owner=owner, name=name))
 
     return render_template('repo_file.html', repo=repo)
 
