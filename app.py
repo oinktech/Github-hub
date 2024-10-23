@@ -7,7 +7,7 @@ from github import Github
 from dotenv import load_dotenv
 from flask_caching import Cache
 from pymongo import MongoClient
-from bson.objectid import ObjectId  # 載入ObjectId類
+from bson.objectid import ObjectId
 
 # 載入環境變數
 load_dotenv()
@@ -19,8 +19,9 @@ app.config['CACHE_TYPE'] = 'SimpleCache'  # 設定快取類型
 app.config['CACHE_DEFAULT_TIMEOUT'] = 300  # 預設快取過期時間
 
 # 初始化資料庫
-client = MongoClient(app.config['MONGO_URI'])
-db = client.get_default_database()  # 使用預設資料庫
+mongo_uri = os.getenv('MONGO_URI')
+client = MongoClient(mongo_uri)
+db = client['0001']  
 users_collection = db.users  # 使用 users 集合
 cache = Cache(app)  # 初始化快取
 
@@ -50,7 +51,6 @@ class User(UserMixin):
 # 載入使用者的函數
 @login_manager.user_loader
 def load_user(user_id):
-    # 將 user_id 轉換為 ObjectId
     user = users_collection.find_one({"_id": ObjectId(user_id)})
     if user:
         return User(id=str(user["_id"]), username=user["username"], github_token=user.get("github_token"))
@@ -129,7 +129,6 @@ def dashboard():
     if request.method == 'POST':
         repo_name = request.form.get('repo_name')
         try:
-            # 檢查儲存庫是否存在
             if any(repo.name == repo_name for repo in gh.get_user().get_repos()):
                 flash('儲存庫名稱已存在，請選擇其他名稱。', 'error')
             else:
@@ -138,22 +137,18 @@ def dashboard():
         except Exception as e:
             flash(f'創建儲存庫失敗：{str(e)}', 'error')
 
-    # 取得當前頁碼
     page = request.args.get('page', 1, type=int)
-    per_page = 30  # 每頁顯示的儲存庫數量
+    per_page = 30
     start = (page - 1) * per_page
 
-    # 獲取所有儲存庫
     repos = list(gh.get_user().get_repos())
-    total_repos = len(repos)  # 總儲存庫數量
-    total_pages = (total_repos + per_page - 1) // per_page  # 總頁數
+    total_repos = len(repos)
+    total_pages = (total_repos + per_page - 1) // per_page
 
-    # 進行分頁
     repos = repos[start:start + per_page]
 
     return render_template('dashboard.html', repos=repos, page=page, total_pages=total_pages)
 
-# 搜尋儲存庫
 @app.route('/search_repos', methods=['GET'])
 @login_required
 def search_repos():
@@ -161,8 +156,7 @@ def search_repos():
     gh = Github(current_user.github_token)
 
     try:
-        # 透過 GitHub API 搜尋用戶的儲存庫
-        repos = gh.get_user().get_repos()  # 取得所有儲存庫
+        repos = gh.get_user().get_repos()
         filtered_repos = [repo for repo in repos if query.lower() in repo.name.lower()]
 
         return render_template('dashboard.html', repos=filtered_repos, page=1, total_pages=1)
@@ -170,27 +164,22 @@ def search_repos():
         flash(f'搜尋失敗：{str(e)}', 'error')
         return redirect(url_for('dashboard'))
 
-# 顯示儲存庫內容
 @app.route('/repo/<owner>/<name>')
 @login_required
 def repo(owner, name):
     gh = Github(current_user.github_token)
     try:
         repo = gh.get_repo(f"{owner}/{name}")
-        contents = repo.get_contents("")  # 嘗試獲取儲存庫內容
+        contents = repo.get_contents("")
         return render_template('repo.html', repo=repo, contents=contents)
     except Exception as e:
-        # 檢查錯誤訊息，特別是空儲存庫的情況
         if "This repository is empty." in str(e):
-            # 嘗試創建一個空白檔案
             try:
-                file_path = "README.md"  # 空白檔案名稱
-                commit_message = "初始化 README 檔案 來自Github-hub"  # 提交訊息
-                repo.create_file(file_path, commit_message, "", branch="main")  # 創建空檔案
-                
+                file_path = "README.md"
+                commit_message = "初始化 README 檔案 來自Github-hub"
+                repo.create_file(file_path, commit_message, "", branch="main")
+
                 flash(f'儲存庫 "{repo.name}" 為空，已創建空白檔案 {file_path}。', 'success')
-                
-                # 重新獲取檔案內容
                 contents = repo.get_contents("")  
                 return render_template('repo.html', repo=repo, contents=contents)
             except Exception as create_error:
@@ -200,7 +189,6 @@ def repo(owner, name):
         
         return redirect(url_for('dashboard'))
 
-# 新增、編輯、刪除檔案
 @app.route('/repo/<owner>/<name>/file', methods=['GET', 'POST'])
 @login_required
 def repo_file(owner, name):
@@ -211,7 +199,7 @@ def repo_file(owner, name):
         file_path = request.form.get('file_path')
         file_content = request.form.get('file_content')
         commit_message = request.form.get('commit_message')
-        action = request.form.get('action')  # 'create' 或 'edit'
+        action = request.form.get('action')
         
         try:
             if action == 'edit':
@@ -229,4 +217,4 @@ def repo_file(owner, name):
     return render_template('repo_file.html', repo=repo)
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=10000,debug=True)
+    app.run(host='0.0.0.0', port=10000)
