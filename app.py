@@ -36,7 +36,7 @@ github_oauth = oauth.register(
 
 # 連接到MongoDB Atlas
 client = MongoClient(os.getenv('MONGO_URI'))
-db = client['your_database_name']  # 替換為你的MongoDB數據庫名稱
+db = client['Cluster0']  
 users_collection = db['users']  # 使用者集合
 
 # 使用者模型 (替換SQLAlchemy的ORM模型)
