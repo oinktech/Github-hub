@@ -11,24 +11,15 @@ from flask_caching import Cache
 # 載入環境變數
 load_dotenv()
 
-# 實例化 Flask 應用
 app = Flask(__name__)
 app.secret_key = os.getenv('SECRET_KEY', 'supersecretkey')
-app.config['MONGO_URI'] = os.getenv('MONGO_URI')  # 使用 MongoDB 的 URI
+app.config['MONGO_URI'] = os.getenv('MONGO_URI')  # 使用環境變數中的 MongoDB 連接字符串
 app.config['CACHE_TYPE'] = 'SimpleCache'  # 設定快取類型
 app.config['CACHE_DEFAULT_TIMEOUT'] = 300  # 預設快取過期時間
 
 # 初始化 MongoDB
 mongo = PyMongo(app)
 cache = Cache(app)  # 初始化快取
-
-# 檢查 MongoDB 連接
-@app.before_first_request
-def init_db():
-    if mongo.cx:
-        print("MongoDB 連接成功")
-    else:
-        print("MongoDB 連接失敗")
 
 # 初始化登入管理
 login_manager = LoginManager(app)
@@ -48,17 +39,17 @@ github_oauth = oauth.register(
 
 # 使用者模型
 class User(UserMixin):
-    def __init__(self, id, username, github_token=None):
-        self.id = str(id)  # 確保 id 為字串格式
+    def __init__(self, username, user_id=None, github_token=None):
+        self.id = user_id
         self.username = username
         self.github_token = github_token
 
 # 載入使用者的函數
 @login_manager.user_loader
 def load_user(user_id):
-    user = mongo.db.users.find_one({"_id": user_id})  # 直接使用字串形式的 user_id
-    if user:
-        return User(id=str(user["_id"]), username=user["username"], github_token=user.get("github_token"))
+    user_data = mongo.db.users.find_one({"_id": user_id})
+    if user_data:
+        return User(username=user_data['username'], user_id=user_data['_id'], github_token=user_data.get('github_token'))
     return None
 
 @app.route('/')
@@ -76,16 +67,16 @@ def auth():
             flash('使用者名稱已被使用，請選擇其他名稱。', 'error')
             return redirect(url_for('index'))
         user_id = mongo.db.users.insert_one({"username": username}).inserted_id
-        user = User(id=user_id, username=username)
+        user = User(username=username, user_id=user_id)
         login_user(user)
         flash('註冊成功！', 'success')
         return redirect(url_for('dashboard'))
 
     elif action == 'login':
-        user = mongo.db.users.find_one({"username": username})
-        if user:
-            user_obj = User(id=str(user["_id"]), username=user["username"], github_token=user.get("github_token"))
-            login_user(user_obj)
+        user_data = mongo.db.users.find_one({"username": username})
+        if user_data:
+            user = User(username=user_data['username'], user_id=user_data['_id'], github_token=user_data.get('github_token'))
+            login_user(user)
             flash('登入成功！', 'success')
             return redirect(url_for('dashboard'))
         flash('無效的使用者名稱或密碼。', 'error')
@@ -187,23 +178,29 @@ def repo(owner, name):
         return render_template('repo.html', repo=repo, contents=contents)
     except Exception as e:
         # 檢查錯誤訊息，特別是空儲存庫的情況
-        if "404" in str(e):
-            flash('儲存庫不存在或無法訪問。', 'error')
-            return redirect(url_for('dashboard'))
-        # 嘗試創建 README 檔案
-        try:
-            file_path = "README.md"
-            commit_message = "Create empty README file"
-            repo.create_file(file_path, "", commit_message)
-            flash('儲存庫是空的，已成功創建空白 README 檔案。', 'success')
-        except Exception as e:
-            flash(f'創建 README 檔案失敗：{str(e)}', 'error')
-        return render_template('repo.html', repo=repo, contents=[])
+        if "This repository is empty." in str(e):
+            # 嘗試創建一個空白檔案
+            try:
+                file_path = "README.md"  # 空白檔案名稱
+                commit_message = "初始化 README 檔案 來自Github-hub"  # 提交訊息
+                repo.create_file(file_path, commit_message, "", branch="main")  # 創建空檔案
+                
+                flash(f'儲存庫 "{repo.name}" 為空，已創建空白檔案 {file_path}。', 'success')
+                
+                # 重新獲取檔案內容
+                contents = repo.get_contents("")  
+                return render_template('repo.html', repo=repo, contents=contents)
+            except Exception as create_error:
+                flash(f'創建檔案失敗：{str(create_error)}', 'error')
+        else:
+            flash(f'無法取得儲存庫內容：{str(e)}', 'error')
+        
+        return redirect(url_for('dashboard'))
 
-# 顯示檔案編輯表單
-@app.route('/repo/<owner>/<name>/edit', methods=['GET', 'POST'])
+# 新增、編輯、刪除檔案
+@app.route('/repo/<owner>/<name>/file', methods=['GET', 'POST'])
 @login_required
-def edit_repo_file(owner, name):
+def repo_file(owner, name):
     gh = Github(current_user.github_token)
     repo = gh.get_repo(f"{owner}/{name}")
 
@@ -211,26 +208,22 @@ def edit_repo_file(owner, name):
         file_path = request.form.get('file_path')
         file_content = request.form.get('file_content')
         commit_message = request.form.get('commit_message')
-
+        action = request.form.get('action')  # 'create' 或 'edit'
+        
         try:
-            repo.create_file(file_path, file_content, commit_message)
-            flash('檔案創建成功。', 'success')
-            return redirect(url_for('repo', owner=owner, name=name))
+            if action == 'edit':
+                contents = repo.get_contents(file_path)
+                repo.update_file(contents.path, commit_message, file_content, contents.sha)
+                flash('檔案編輯成功！', 'success')
+            else:
+                repo.create_file(file_path, commit_message, file_content)
+                flash('檔案創建成功！', 'success')
         except Exception as e:
             flash(f'操作失敗：{str(e)}', 'error')
-            return redirect(url_for('repo', owner=owner, name=name))
 
-    # 顯示檔案編輯表單
+        return redirect(url_for('repo', owner=owner, name=name))
+
     return render_template('repo_file.html', repo=repo)
 
-# 錯誤處理
-@app.errorhandler(404)
-def page_not_found(e):
-    return render_template('404.html'), 404
-
-@app.errorhandler(500)
-def internal_server_error(e):
-    return render_template('500.html'), 500
-
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=10000, debug=True)
+    app.run(host='0.0.0.0', port=10000)
