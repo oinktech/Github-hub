@@ -21,6 +21,14 @@ app.config['CACHE_DEFAULT_TIMEOUT'] = 300  # 預設快取過期時間
 mongo = PyMongo(app)
 cache = Cache(app)  # 初始化快取
 
+# 檢查 MongoDB 連接
+@app.before_first_request
+def init_db():
+    if mongo.cx:
+        print("MongoDB 連接成功")
+    else:
+        print("MongoDB 連接失敗")
+
 # 初始化登入管理
 login_manager = LoginManager(app)
 login_manager.login_view = 'index'
@@ -183,24 +191,18 @@ def repo(owner, name):
             try:
                 file_path = "README.md"  # 空白檔案名稱
                 commit_message = "初始化 README 檔案 來自Github-hub"  # 提交訊息
-                repo.create_file(file_path, commit_message, "", branch="main")  # 創建空檔案
-                
-                flash(f'儲存庫 "{repo.name}" 為空，已創建空白檔案 {file_path}。', 'success')
-                
-                # 重新獲取檔案內容
-                contents = repo.get_contents("")  
-                return render_template('repo.html', repo=repo, contents=contents)
-            except Exception as create_error:
-                flash(f'創建檔案失敗：{str(create_error)}', 'error')
-        else:
-            flash(f'無法取得儲存庫內容：{str(e)}', 'error')
-        
+                repo.create_file(file_path, "", commit_message)
+                flash('儲存庫是空的，已成功創建空白 README 檔案。', 'success')
+            except Exception as e:
+                flash(f'創建 README 檔案失敗：{str(e)}', 'error')
+            return render_template('repo.html', repo=repo, contents=[])
+        flash(f'顯示儲存庫內容失敗：{str(e)}', 'error')
         return redirect(url_for('dashboard'))
 
-# 新增、編輯、刪除檔案
-@app.route('/repo/<owner>/<name>/file', methods=['GET', 'POST'])
+# 顯示檔案編輯表單
+@app.route('/repo/<owner>/<name>/edit', methods=['GET', 'POST'])
 @login_required
-def repo_file(owner, name):
+def edit_repo_file(owner, name):
     gh = Github(current_user.github_token)
     repo = gh.get_repo(f"{owner}/{name}")
 
@@ -208,16 +210,10 @@ def repo_file(owner, name):
         file_path = request.form.get('file_path')
         file_content = request.form.get('file_content')
         commit_message = request.form.get('commit_message')
-        action = request.form.get('action')  # 'create' 或 'edit'
-        
+
         try:
-            if action == 'edit':
-                contents = repo.get_contents(file_path)
-                repo.update_file(contents.path, commit_message, file_content, contents.sha)
-                flash('檔案編輯成功。', 'success')
-            elif action == 'create':
-                repo.create_file(file_path, commit_message, file_content)
-                flash('檔案創建成功。', 'success')
+            repo.create_file(file_path, file_content, commit_message)
+            flash('檔案創建成功。', 'success')
             return redirect(url_for('repo', owner=owner, name=name))
         except Exception as e:
             flash(f'操作失敗：{str(e)}', 'error')
