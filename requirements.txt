@@ -5,3 +5,5 @@ Authlib
 PyGithub
 python-dotenv
 flask_caching
+pymongo
+flask-pymongo
