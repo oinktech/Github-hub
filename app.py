@@ -11,6 +11,7 @@ from flask_caching import Cache
 # 載入環境變數
 load_dotenv()
 
+# 實例化 Flask 應用
 app = Flask(__name__)
 app.secret_key = os.getenv('SECRET_KEY', 'supersecretkey')
 app.config['MONGO_URI'] = os.getenv('MONGO_URI')  # 使用 MongoDB 的 URI
@@ -186,18 +187,18 @@ def repo(owner, name):
         return render_template('repo.html', repo=repo, contents=contents)
     except Exception as e:
         # 檢查錯誤訊息，特別是空儲存庫的情況
-        if "This repository is empty." in str(e):
-            # 嘗試創建一個空白檔案
-            try:
-                file_path = "README.md"  # 空白檔案名稱
-                commit_message = "初始化 README 檔案 來自Github-hub"  # 提交訊息
-                repo.create_file(file_path, "", commit_message)
-                flash('儲存庫是空的，已成功創建空白 README 檔案。', 'success')
-            except Exception as e:
-                flash(f'創建 README 檔案失敗：{str(e)}', 'error')
-            return render_template('repo.html', repo=repo, contents=[])
-        flash(f'顯示儲存庫內容失敗：{str(e)}', 'error')
-        return redirect(url_for('dashboard'))
+        if "404" in str(e):
+            flash('儲存庫不存在或無法訪問。', 'error')
+            return redirect(url_for('dashboard'))
+        # 嘗試創建 README 檔案
+        try:
+            file_path = "README.md"
+            commit_message = "Create empty README file"
+            repo.create_file(file_path, "", commit_message)
+            flash('儲存庫是空的，已成功創建空白 README 檔案。', 'success')
+        except Exception as e:
+            flash(f'創建 README 檔案失敗：{str(e)}', 'error')
+        return render_template('repo.html', repo=repo, contents=[])
 
 # 顯示檔案編輯表單
 @app.route('/repo/<owner>/<name>/edit', methods=['GET', 'POST'])
