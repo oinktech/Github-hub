@@ -222,8 +222,15 @@ def repo_file(owner, name):
         except Exception as e:
             flash(f'操作失敗：{str(e)}', 'error')
 
-    return render_template('file_form.html', repo=repo)
-
+    # 獲取檔案內容以便顯示
+    file_path = request.args.get('file_path')
+    try:
+        contents = repo.get_contents(file_path)
+        file_content = contents.decoded_content.decode('utf-8')  # 取得檔案內容
+        return render_template('file_form.html', repo=repo, file_path=file_path, file_content=file_content)
+    except Exception as e:
+        flash(f'無法取得檔案內容：{str(e)}', 'error')
+        return redirect(url_for('repo', owner=owner, name=name))
 
 @app.route('/repo/<owner>/<name>/delete_file', methods=['POST'])
 @login_required
