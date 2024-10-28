@@ -21,7 +21,7 @@ app.config['CACHE_DEFAULT_TIMEOUT'] = 300  # 預設快取過期時間
 # 初始化資料庫
 mongo_uri = os.getenv('MONGO_URI')
 client = MongoClient(mongo_uri)
-db = client['0001']  
+db = client['0001']
 users_collection = db.users  # 使用 users 集合
 cache = Cache(app)  # 初始化快取
 
@@ -180,13 +180,13 @@ def repo(owner, name):
                 repo.create_file(file_path, commit_message, "", branch="main")
 
                 flash(f'儲存庫 "{repo.name}" 為空，已創建空白檔案 {file_path}。', 'success')
-                contents = repo.get_contents("")  
+                contents = repo.get_contents("")
                 return render_template('repo.html', repo=repo, contents=contents)
             except Exception as create_error:
                 flash(f'創建檔案失敗：{str(create_error)}', 'error')
         else:
             flash(f'無法取得儲存庫內容：{str(e)}', 'error')
-        
+
         return redirect(url_for('dashboard'))
 
 @app.route('/repo/<owner>/<name>/file', methods=['GET', 'POST'])
@@ -200,7 +200,7 @@ def repo_file(owner, name):
         file_content = request.form.get('file_content')
         commit_message = request.form.get('commit_message')
         action = request.form.get('action')
-        
+
         try:
             if action == 'edit':
                 contents = repo.get_contents(file_path)
@@ -216,5 +216,31 @@ def repo_file(owner, name):
 
     return render_template('repo_file.html', repo=repo)
 
+@app.route('/repo/<owner>/<name>/delete_file', methods=['POST'])
+@login_required
+def delete_file(owner, name):
+    gh = Github(current_user.github_token)
+    repo = gh.get_repo(f"{owner}/{name}")
+    file_path = request.form.get('file_path')
+
+    try:
+        contents = repo.get_contents(file_path)
+        repo.delete_file(contents.path, f"刪除檔案 {file_path}", contents.sha)
+        flash(f'檔案 "{file_path}" 已刪除。', 'success')
+    except Exception as e:
+        flash(f'刪除檔案失敗：{str(e)}', 'error')
+
+    return redirect(url_for('repo', owner=owner, name=name))
+
+# 錯誤處理
+@app.errorhandler(404)
+def page_not_found(e):
+    return render_template('404.html'), 404
+
+@app.errorhandler(500)
+def internal_server_error(e):
+    return render_template('500.html'), 500
+
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=10000)
+    logging.basicConfig(level=logging.DEBUG)
+    app.run(host='0.0.0.0', port=10000, debug=True)
