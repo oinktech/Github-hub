@@ -1,3 +1,4 @@
+<!-- templates/repo.html -->
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
@@ -18,6 +19,7 @@
         }
         .file-item:hover {
             background-color: #e9ecef;
+            cursor: pointer; /* 讓資料夾項目看起來可以點擊 */
         }
     </style>
 </head>
@@ -54,14 +56,8 @@
         </thead>
         <tbody>
             {% for content in contents %}
-            <tr class="file-item">
-                <td>
-                    {% if content.type == 'dir' %}
-                    <a href="{{ url_for('repo', owner=repo.owner.login, name=repo.name, path=content.path) }}"><i class="fas fa-folder"></i> {{ content.path }}</a>
-                    {% else %}
-                    {{ content.path }}
-                    {% endif %}
-                </td>
+            <tr class="file-item" {% if content.type == 'dir' %} onclick="window.location.href='{{ url_for('repo', owner=repo.owner.login, name=repo.name) }}?file_path={{ content.path }}'" {% endif %}>
+                <td>{{ content.path }}</td>
                 <td>
                     {% if content.type == 'file' %}
                     <a href="{{ url_for('repo_file', owner=repo.owner.login, name=repo.name) }}?file_path={{ content.path }}" class="btn btn-primary btn-sm"><i class="fas fa-edit"></i> 編輯</a>
