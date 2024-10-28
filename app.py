@@ -165,18 +165,21 @@ def search_repos():
         return redirect(url_for('dashboard'))
 
 @app.route('/repo/<owner>/<name>')
+@app.route('/repo/<owner>/<name>', methods=['GET'])
 @login_required
 def repo(owner, name):
     gh = Github(current_user.github_token)
+    file_path = request.args.get('file_path', '')  # 獲取當前檔案路徑
     try:
         repo = gh.get_repo(f"{owner}/{name}")
-        contents = repo.get_contents("")
+        contents = repo.get_contents(file_path) if file_path else repo.get_contents("")  # 根據路徑獲取內容
+
         return render_template('repo.html', repo=repo, contents=contents)
     except Exception as e:
         if "This repository is empty." in str(e):
             try:
                 file_path = "README.md"
-                commit_message = "初始化 README 檔案 來自Github-hub"
+                commit_message = "初始化 README 檔案來自 GitHub-hub"
                 repo.create_file(file_path, commit_message, "", branch="main")
 
                 flash(f'儲存庫 "{repo.name}" 為空，已創建空白檔案 {file_path}。', 'success')
@@ -214,7 +217,7 @@ def repo_file(owner, name):
         except Exception as e:
             flash(f'操作失敗：{str(e)}', 'error')
 
-    return render_template('repo_file.html', repo=repo)
+    return render_template('file_form.html', repo=repo)
 
 @app.route('/repo/<owner>/<name>/delete_file', methods=['POST'])
 @login_required
