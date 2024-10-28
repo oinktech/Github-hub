@@ -164,12 +164,17 @@ def search_repos():
         flash(f'搜尋失敗：{str(e)}', 'error')
         return redirect(url_for('dashboard'))
 
-@app.route('/repo/<owner>/<name>')
 @app.route('/repo/<owner>/<name>', methods=['GET'])
 @login_required
 def repo(owner, name):
     gh = Github(current_user.github_token)
     file_path = request.args.get('file_path', '')  # 獲取當前檔案路徑
+    if file_path == '..':
+        # 處理返回上層資料夾的邏輯
+        if '/' in file_path:
+            file_path = '/'.join(file_path.split('/')[:-1])  # 去掉最後一部分
+        else:
+            file_path = ''
     try:
         repo = gh.get_repo(f"{owner}/{name}")
         contents = repo.get_contents(file_path) if file_path else repo.get_contents("")  # 根據路徑獲取內容
@@ -218,6 +223,7 @@ def repo_file(owner, name):
             flash(f'操作失敗：{str(e)}', 'error')
 
     return render_template('file_form.html', repo=repo)
+
 
 @app.route('/repo/<owner>/<name>/delete_file', methods=['POST'])
 @login_required
