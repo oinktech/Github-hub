@@ -38,8 +38,13 @@ github_oauth = oauth.register(
     access_token_url='https://github.com/login/oauth/access_token',
     authorize_url='https://github.com/login/oauth/authorize',
     api_base_url='https://api.github.com/',
-    client_kwargs={'scope': 'repo'}
+    client_kwargs={
+        'scope': 'repo,user,admin:repo_hook,workflow,write:packages,delete:packages,admin:org,read:org,'
+                 'admin:public_key,read:user,user:email,user:follow,notifications,gist,delete_repo,'
+                 'read:repo_hook,admin:org_hook'
+    }
 )
+
 
 # 使用者模型
 class User(UserMixin):
